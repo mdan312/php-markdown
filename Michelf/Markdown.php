@@ -1588,7 +1588,7 @@ abstract class _MarkdownExtra_TmpImpl extends \Michelf\Markdown {
 	public $code_class_prefix = "";
 	# Class attribute for code blocks goes on the `code` tag;
 	# setting this to true will put attributes on the `pre` tag instead.
-	public $code_attr_on_pre = false;
+	public $code_attr_on_pre = true;
 	
 	# Predefined abbreviations.
 	public $predef_abbr = array();
@@ -2846,10 +2846,30 @@ abstract class _MarkdownExtra_TmpImpl extends \Michelf\Markdown {
 				# Closing marker.
 				\1 [ ]* (?= \n )
 			}xm',
-			array($this, '_doFencedCodeBlocks_callback'), $text);
+			array($this, '_doFencedDivBlocks_callback'), $text);
 
 		return $text;
 	}
+	protected function _doFencedDivBlocks_callback($matches) {
+		$classname =& $matches[2];
+		$attrs     =& $matches[3];
+		$divblock = $matches[4];
+		//$divblock = htmlspecialchars($divblock, ENT_NOQUOTES);
+//		$divblock = preg_replace_callback('/^\n+/',
+//			array($this, '_doFencedCodeBlocks_newlines'), $divblock);
+
+		if ($classname != "") {
+			if ($classname{0} == '.')
+				$classname = substr($classname, 1);
+			$attr_str = ' class="'.$classname.'"';
+		} else {
+			$attr_str = $this->doExtraAttributes("div", $attrs);
+		}
+		$divblock  = "<div$attr_str>$divblock</div>";
+		
+		return "\n\n".$this->hashBlock($divblock)."\n\n";
+	}
+
 	protected function _doFencedCodeBlocks_callback($matches) {
 		$classname =& $matches[2];
 		$attrs     =& $matches[3];
@@ -2871,6 +2891,8 @@ abstract class _MarkdownExtra_TmpImpl extends \Michelf\Markdown {
 		
 		return "\n\n".$this->hashBlock($codeblock)."\n\n";
 	}
+
+
 	protected function _doFencedCodeBlocks_newlines($matches) {
 		return str_repeat("<br$this->empty_element_suffix", 
 			strlen($matches[0]));
